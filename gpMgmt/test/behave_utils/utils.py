@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import difflib
 
-import pg
+import psycopg2
 
 from contextlib import closing
 from datetime import datetime
@@ -312,14 +312,14 @@ def check_table_exists(context, dbname, table_name, table_type=None, host=None, 
                 FROM pg_class c, pg_namespace n
                 WHERE c.relname = '%s' AND n.nspname = '%s' AND c.relnamespace = n.oid;
                 """
-            SQL = SQL_format % (escape_string(tablename, conn=conn), escape_string(schemaname, conn=conn))
+            SQL = SQL_format % (escape_string(tablename), escape_string(schemaname))
         else:
             SQL_format = """
                 SELECT oid, relkind, relam, reloptions \
                 FROM pg_class \
                 WHERE relname = E'%s';\
                 """
-            SQL = SQL_format % (escape_string(table_name, conn=conn))
+            SQL = SQL_format % (escape_string(table_name))
 
         table_row = None
         try:
@@ -768,8 +768,11 @@ def replace_special_char_env(str):
     return str
 
 
-def escape_string(string, conn):
-    return pg.DB(db=conn).escape_string(string)
+def Escape(query_str):
+    return psycopg2.extensions.QuotedString(query_str).getquoted()[1:-1].decode()
+
+def escape_string(string):
+    return Escape(string)
 
 
 def wait_for_unblocked_transactions(context, num_retries=150):

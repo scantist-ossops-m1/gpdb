@@ -18,11 +18,11 @@ class GpCheckCatTestCase(GpTestCase):
         self.subject = imp.load_source('gpcheckcat', gpcheckcat_file)
         self.subject.check_gpexpand = lambda : (True, "")
 
-        self.db_connection = Mock(spec=['close', 'query'])
+        self.conn = Mock(spec=['close', 'cursor', 'set_session'])
         self.unique_index_violation_check = Mock(spec=['runCheck'])
         self.foreign_key_check = Mock(spec=['runCheck', 'checkTableForeignKey'])
         self.apply_patches([
-            patch("gpcheckcat.pg.connect", return_value=self.db_connection),
+            patch("gpcheckcat.connect", return_value=self.conn),
             patch("gpcheckcat.UniqueIndexViolationCheck", return_value=self.unique_index_violation_check),
             patch("gpcheckcat.ForeignKeyCheck", return_value=self.foreign_key_check),
             patch('os.environ', new={}),
@@ -58,7 +58,7 @@ class GpCheckCatTestCase(GpTestCase):
     # def test_run_all_checks__runs_all_checks_in_correct_order(self):
     #     self.subject.runAllChecks()
     #
-    #     self.unique_index_violation_check.runCheck.assert_any_call(self.db_connection)
+    #     self.unique_index_violation_check.runCheck.assert_any_call(self.conn)
     #     # add other checks here
     #     # figure out how to enforce the order of calls;
     #     # at a minimum, check the order number of the static list gpcheckcat.all_checks
@@ -66,7 +66,7 @@ class GpCheckCatTestCase(GpTestCase):
     def test_running_unique_index_violation_check__makes_the_check(self):
         self.subject.runOneCheck('unique_index_violation')
 
-        self.unique_index_violation_check.runCheck.assert_called_with(self.db_connection)
+        self.unique_index_violation_check.runCheck.assert_called_with(self.conn)
 
     def test_running_unique_index_violation_check__when_no_violations_are_found__passes_the_check(self):
         self.subject.runOneCheck('unique_index_violation')
@@ -101,21 +101,21 @@ class GpCheckCatTestCase(GpTestCase):
         self.assertIn(expected_message2, log_messages)
 
     def test_drop_leaked_schemas__when_no_leaked_schemas_exist__passes_gpcheckcat(self):
-        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.db_connection)
+        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.conn)
 
         self.subject.setError.assert_not_called()
 
     def test_drop_leaked_schemas____when_leaked_schemas_exist__finds_and_drops_leaked_schemas(self):
         self.leaked_schema_dropper.drop_leaked_schemas.return_value = ['schema1', 'schema2']
 
-        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.db_connection)
+        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.conn)
 
-        self.leaked_schema_dropper.drop_leaked_schemas.assert_called_once_with(self.db_connection)
+        self.leaked_schema_dropper.drop_leaked_schemas.assert_called_once_with(self.conn)
 
     def test_drop_leaked_schemas__when_leaked_schemas_exist__passes_gpcheckcat(self):
         self.leaked_schema_dropper.drop_leaked_schemas.return_value = ['schema1', 'schema2']
 
-        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.db_connection)
+        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.conn)
 
         self.subject.setError.assert_not_called()
 
@@ -129,23 +129,26 @@ class GpCheckCatTestCase(GpTestCase):
         self.assertIn(expected_message, log_messages)
 
     def test_automatic_thread_count(self):
-        self.db_connection.query.return_value.getresult.return_value = [[0]]
+        self.conn.cursor.return_value.fetchall.return_value = [[0]]
 
         self._run_batch_size_experiment(100)
         self._run_batch_size_experiment(101)
 
+    @patch('gpcheckcat.getversion', return_value='4.3')
     @patch('gpcheckcat.GPCatalog', return_value=Mock())
     @patch('sys.exit')
     @patch('gppylib.gplog.log_literal')
-    def test_truncate_batch_size(self, mock_log, mock_gpcheckcat, mock_sys_exit):
+    def test_truncate_batch_size(self, mock_log, mock_sys_exit, mock_gpcatalog, mock_version):
         self.subject.GV.opt['-B'] = 300  # override the setting from available memory
         # setup conditions for 50 primaries and plenty of RAM such that max threads > 50
         primaries = [dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=-1, dbid=0, isprimary='t')]
 
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
-        self.db_connection.query.return_value.getresult.return_value = [['4.3']]
-        self.db_connection.query.return_value.dictresult.return_value = primaries
+        self.conn.cursor.return_value = Mock()
+        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
 
         testargs = ['some_string','-port 1', '-R foo']
 
@@ -190,7 +193,7 @@ class GpCheckCatTestCase(GpTestCase):
         self.assertTrue(self.subject.GV.foreignKeyStatus)
         self.subject.setError.assert_any_call(self.subject.ERROR_REMOVE)
         self.foreign_key_check.runCheck.assert_called_once_with(cat_tables)
-        fast_seq_mock.assert_called_once_with(self.db_connection)
+        fast_seq_mock.assert_called_once_with(self.conn)
 
     @patch('gpcheckcat.processForeignKeyResult')
     def test_checkForeignKey__with_arg(self, process_foreign_key_mock):
@@ -221,10 +224,11 @@ class GpCheckCatTestCase(GpTestCase):
         self.foreign_key_check.runCheck.assert_called_once_with(cat_tables)
 
     # Test gpcheckat -C option with checkForeignKey
+    @patch('gpcheckcat.getversion', return_value='4.3')
     @patch('gpcheckcat.GPCatalog', return_value=Mock())
     @patch('sys.exit')
     @patch('gpcheckcat.checkTableMissingEntry')
-    def test_runCheckCatname__for_checkForeignKey(self, mock1, mock2, mock3):
+    def test_runCheckCatname__for_checkForeignKey(self, mock1, mock2, mock3, mock4):
         self.subject.checkForeignKey = Mock()
         gpcat_class_mock = Mock(spec=['getCatalogTable'])
         cat_obj_mock = Mock()
@@ -234,8 +238,12 @@ class GpCheckCatTestCase(GpTestCase):
 
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
-        self.db_connection.query.return_value.getresult.return_value = [['4.3']]
-        self.db_connection.query.return_value.dictresult.return_value = primaries
+
+        # context manager helper functions.
+        self.conn.cursor.return_value = Mock()
+        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
 
         self.subject.GV.opt['-C'] = 'pg_class'
 
@@ -314,7 +322,13 @@ class GpCheckCatTestCase(GpTestCase):
         primaries = [dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=-1, dbid=0, isprimary='t')]
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
-        self.db_connection.query.return_value.dictresult.return_value = primaries
+
+        # context manager helper functions.
+        self.conn.cursor.return_value = Mock()
+        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+
         self.subject.all_checks = {'test1': 'a', 'test2': 'b', 'test3': 'c'}
 
         testargs = ['gpcheckcat', '-port 1', '-s test2']
@@ -330,7 +344,13 @@ class GpCheckCatTestCase(GpTestCase):
         primaries = [dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=-1, dbid=0, isprimary='t')]
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
-        self.db_connection.query.return_value.dictresult.return_value = primaries
+
+        # context manager helper functions.
+        self.conn.cursor.return_value = Mock()
+        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+
         self.subject.all_checks = {'test1': 'a', 'test2': 'b', 'test3': 'c'}
 
         testargs = ['gpcheckcat', '-port 1', '-s', "test1, test2"]
@@ -346,7 +366,11 @@ class GpCheckCatTestCase(GpTestCase):
         primaries = [dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=-1, dbid=0, isprimary='t')]
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
-        self.db_connection.query.return_value.dictresult.return_value = primaries
+        # context manager helper functions.
+        self.conn.cursor.return_value = Mock()
+        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
         self.subject.all_checks = {'test1': 'a', 'test2': 'b', 'test3': 'c'}
 
         testargs = ['gpcheckcat', '-port 1', '-s', "test_invalid, test2"]
@@ -365,7 +389,13 @@ class GpCheckCatTestCase(GpTestCase):
         primaries = [dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=-1, dbid=0, isprimary='t')]
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
-        self.db_connection.query.return_value.dictresult.return_value = primaries
+
+        # context manager helper functions.
+        self.conn.cursor.return_value = Mock()
+        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+
         self.subject.all_checks = {'test1': 'a', 'test2': 'b', 'test3': 'c'}
 
         testargs = ['gpcheckcat', '-port 1', '-R', "test1, test2"]

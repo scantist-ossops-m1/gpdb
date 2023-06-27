@@ -5,11 +5,10 @@ import shlex
 import shutil
 import sys
 import tempfile
-
+import psycopg2
 from gppylib.gparray import Segment, GpArray, SegmentPair
 from gpconfig_modules.parse_guc_metadata import ParseGuc
 import errno
-from pg import DatabaseError
 
 from .gp_unittest import *
 from unittest.mock import *
@@ -22,7 +21,7 @@ def singleton_side_effect(unused1, unused2):
     # this function replaces dbconn.querySingleton(conn, sql), conditionally raising exception
     if len(db_singleton_side_effect_list) > 0:
         if db_singleton_side_effect_list[0] == "DatabaseError":
-            raise DatabaseError("mock exception")
+            raise psycopg2.DatabaseError("mock exception")
         return db_singleton_side_effect_list[0]
     return None
 

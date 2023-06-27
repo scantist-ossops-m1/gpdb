@@ -15,7 +15,7 @@
 import os
 import sys
 import re
-
+import psycopg2
 try:
     from gppylib.gpparseopts import OptParser, OptChecker
     from gppylib.gparray import GpArray
@@ -25,7 +25,6 @@ try:
     from gppylib.commands.gp import *
     from gppylib.db import dbconn
     from gppylib.userinput import *
-    from pg import DatabaseError
     from gpconfig_modules.segment_guc import SegmentGuc
     from gpconfig_modules.database_segment_guc import DatabaseSegmentGuc
     from gpconfig_modules.file_segment_guc import FileSegmentGuc
@@ -229,7 +228,7 @@ def do_list(skipvalidation):
 
         conn.close()
 
-    except DatabaseError as _:
+    except psycopg2.DatabaseError as _:
         LOGGER.error('Failed to connect to database, this script can only be run when the database is up.')
 
 
@@ -247,7 +246,7 @@ def get_gucs_from_database(gucname):
         conn.close()
         return gucs
 
-    except DatabaseError as ex:
+    except psycopg2.DatabaseError as ex:
 
         if re.search("unrecognized configuration parameter", ex.__str__()):
             LOGGER.error('Failed to retrieve GUC information, guc does not exist: ' + gucname)
@@ -306,7 +305,7 @@ def do_change(options):
             validate_change_options(options, conn, guc)
             conn.close()
 
-    except DatabaseError as ex:
+    except psycopg2.DatabaseError as ex:
         LOGGER.error(ex.__str__())
         msg = 'Failed to connect to database, exiting without action. ' \
               'This script can only be run when the database is up.'
@@ -421,7 +420,7 @@ def validate_change_options(options, conn, guc):
         #     2. It has a valid return from SHOW <guc_name>;
         try:
             dbconn.querySingleton(conn, "SHOW %s" % options.entry)
-        except DatabaseError:
+        except psycopg2.DatabaseError:
             msg = "not a valid GUC: " + options.entry
             LOGGER.fatal(msg)
             raise Exception(msg)
@@ -500,7 +499,7 @@ def _set_gparray():
     try:
         global gp_array
         gp_array = GpArray.initFromCatalog(dbconn.DbURL(), utility=True)
-    except DatabaseError as ex:
+    except psycopg2.DatabaseError as ex:
         LOGGER.error(ex.__str__())
         msg = 'Failed to connect to database, exiting without action. ' \
               'This script can only be run when the database is up.'
