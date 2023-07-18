@@ -4,8 +4,7 @@ import time
 from gppylib.operations.segment_reconfigurer import SegmentReconfigurer, FTS_PROBE_QUERY
 
 from gppylib.test.unit.gp_unittest import GpTestCase
-import pg
-import pgdb
+import psycopg2
 import mock
 from mock import Mock, patch, call, MagicMock
 import contextlib
@@ -38,22 +37,22 @@ class SegmentReconfiguerTestCase(GpTestCase):
         self.apply_patches([
             patch('gppylib.db.dbconn.connect', new=self.connect),
             patch('gppylib.db.dbconn.DbURL', return_value=self.db_url),
-            patch('pg.connect'),
+            patch('psycopg2.connect'),
         ])
 
     def test_it_triggers_fts_probe(self):
         reconfigurer = SegmentReconfigurer(logger=self.logger,
                 worker_pool=self.worker_pool, timeout=self.timeout)
         reconfigurer.reconfigure()
-        pg.connect.assert_has_calls([
-            call(dbname=self.db, host=self.host, port=self.port, opt=None, user=self.user, passwd=self.passwd),
+        psycopg2.connect.assert_has_calls([
+            call(dbname=self.db, host=self.host, port=self.port, options=None, user=self.user, passord=self.passwd),
             call().query(FTS_PROBE_QUERY),
             call().close(),
             ]
             )
 
     def test_it_retries_the_connection(self):
-        self.connect.configure_mock(side_effect=[pgdb.DatabaseError, pgdb.DatabaseError, self.conn])
+        self.connect.configure_mock(side_effect=[psycopg2.DatabaseError, psycopg2.DatabaseError, self.conn])
 
         reconfigurer = SegmentReconfigurer(logger=self.logger,
                 worker_pool=self.worker_pool, timeout=self.timeout)
@@ -74,7 +73,7 @@ class SegmentReconfiguerTestCase(GpTestCase):
                 # leap forward 300 seconds
                 new_time += self.timeout / 2
                 now_mock.configure_mock(return_value=new_time)
-                yield pgdb.DatabaseError
+                yield psycopg2.DatabaseError
 
 
         self.connect.configure_mock(side_effect=fail_for_five_minutes())

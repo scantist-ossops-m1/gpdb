@@ -37,5 +37,5 @@ class ExceptionWithArgsUnsafe(Exception):
 
 class RaiseOperation_Unpicklable(Operation):
     def execute(self):
-        import pg
-        raise pg.DatabaseError()
+        import psycopg2
+        raise psycopg2.DatabaseError()
