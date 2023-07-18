@@ -37,17 +37,11 @@ except ImportError:
 import platform
 import psycopg2
 from psycopg2 import extras
-
-def Escape(query_str):
-    return psycopg2.extensions.QuotedString(query_str).getquoted()[1:-1].decode()
-
-def escape_string(string):
-    return Escape(string)
-
 import hashlib
 import datetime,getpass,os,signal,socket,threading,time,traceback,re
 import subprocess
 import uuid
+from gppylib.utils import escape_string
 
 try:
     from gppylib.gpversion import GpVersion

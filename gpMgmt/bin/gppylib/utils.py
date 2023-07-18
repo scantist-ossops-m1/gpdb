@@ -503,13 +503,12 @@ def escapeDoubleQuoteInSQLString(string, forceDoubleQuote=True):
         string = '"' + string + '"'
     return string
 
-
-def Escape(query_str):
-    return psycopg2.extensions.QuotedString(query_str).getquoted()[1:-1].decode()
+def escape_string(string):
+    return psycopg2.extensions.QuotedString(string).getquoted()[1:-1].decode()
 
 def escapeArrayElement(query_str):
     # also escape backslashes and double quotes, in addition to the doubling of single quotes
-    return Escape(query_str.encode(errors='backslashreplace')).encode().decode(errors='backslashreplace').replace('\\','\\\\').replace('"','\\"')
+    return escape_string(query_str.encode(errors='backslashreplace')).encode().decode(errors='backslashreplace').replace('\\','\\\\').replace('"','\\"')
 
 
 # Transform Python list to Postgres array literal (of the form: '{...}')

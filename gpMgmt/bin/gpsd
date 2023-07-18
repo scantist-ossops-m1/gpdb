@@ -11,7 +11,7 @@ import sys
 import re
 from contextlib import closing
 from optparse import OptionParser
-from gppylib.utils import formatInsertValuesList, Escape
+from gppylib.utils import formatInsertValuesList
 import psycopg2
 
 gpsd_version = '%prog 1.0'

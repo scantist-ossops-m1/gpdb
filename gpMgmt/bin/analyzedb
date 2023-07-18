@@ -33,6 +33,7 @@ try:
     from gppylib.gpversion import GpVersion
     from gppylib.db import dbconn
     from gppylib.operations.unix import CheckDir, CheckFile, MakeDir
+    from gppylib.utils import escape_string
 
 except ImportError as e:
     sys.exit('Cannot import modules.  Please check that you have sourced greenplum_path.sh.  Detail: ' + str(e))
@@ -158,12 +159,6 @@ SELECT schemaname, tablename FROM
 (SELECT c.oid as tableoid, n.nspname as schemaname, c.relname as tablename FROM pg_class c, pg_namespace n where c.relnamespace=n.oid and c.oid in (%s)) AS foo
 ORDER BY tableoid DESC;
 """
-
-def Escape(query_str):
-    return psycopg2.extensions.QuotedString(query_str).getquoted()[1:-1].decode()
-
-def escape_string(string):
-    return Escape(string)
 
 def validate_schema_exists(pg_port, dbname, schema):
     conn = None

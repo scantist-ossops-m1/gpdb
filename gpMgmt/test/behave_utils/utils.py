@@ -11,15 +11,13 @@ import shutil
 import subprocess
 import difflib
 
-import psycopg2
-
 from contextlib import closing
 from datetime import datetime
 from gppylib.commands.base import Command, ExecutionError, REMOTE
 from gppylib.commands.gp import chk_local_db_running, get_coordinatordatadir
 from gppylib.db import dbconn
 from gppylib.gparray import GpArray, MODE_SYNCHRONIZED
-
+from gppylib.utils import escape_string
 
 PARTITION_START_DATE = '2010-01-01'
 PARTITION_END_DATE = '2013-01-01'
@@ -766,14 +764,6 @@ def replace_special_char_env(str):
         if var in os.environ:
             str = str.replace("$%s" % var, os.environ[var])
     return str
-
-
-def Escape(query_str):
-    return psycopg2.extensions.QuotedString(query_str).getquoted()[1:-1].decode()
-
-def escape_string(string):
-    return Escape(string)
-
 
 def wait_for_unblocked_transactions(context, num_retries=150):
     """

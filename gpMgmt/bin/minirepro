@@ -64,7 +64,7 @@ import os, sys, re, json, platform, subprocess
 import psycopg2
 from optparse import OptionParser
 from datetime import datetime
-from gppylib.utils import formatInsertValuesList, Escape
+from gppylib.utils import formatInsertValuesList, escape_string
 
 version = '1.13'
 PATH_PREFIX = '/tmp/'
@@ -136,7 +136,7 @@ def dump_query(connectionInfo, query_file):
 
     with open(query_file, 'r') as query_f:
         sql_text = query_f.read()
-    query = "select pg_catalog.gp_dump_query_oids('%s')" % Escape(sql_text)
+    query = "select pg_catalog.gp_dump_query_oids('%s')" % escape_string(sql_text)
 
     toolkit_sql = PATH_PREFIX + 'toolkit.sql'
     with open(toolkit_sql, 'w') as toolkit_f:
@@ -187,7 +187,7 @@ def pg_dump_object(mr_query, connectionInfo, envOpts):
     out_file = PATH_PREFIX + PGDUMP_FILE
     dmp_cmd = 'pg_dump -h %s -p %s -U %s -sxO %s' % connectionInfo
     dmp_cmd = "%s --relation-oids %s --function-oids %s -f %s" % \
-        (dmp_cmd, mr_query.relids, mr_query.funcids, Escape(out_file))
+        (dmp_cmd, mr_query.relids, mr_query.funcids, escape_string(out_file))
     print(dmp_cmd)
     p = subprocess.Popen(dmp_cmd, shell=True, stderr=subprocess.PIPE, env=envOpts)
     _, errormsg = p.communicate()
@@ -213,7 +213,7 @@ def dump_tuple_count(cur, oid_str, f_out):
         for col, val, typ in zip(columns[2:], vals[2:], types):
             # i.e. relpages = 1::int, reltuples = 1.0::real
             lines.append('\t%s = %s::%s' % (col, val, typ))
-        updateStmt = templateStmt.format(Escape(',\n'.join(lines)), Escape(vals[0]), Escape(vals[1]))
+        updateStmt = templateStmt.format(escape_string(',\n'.join(lines)), escape_string(vals[0]), escape_string(vals[1]))
         f_out.writelines(updateStmt)
 
 def dump_stats(cur, oid_str, f_out, inclHLL):
@@ -255,7 +255,7 @@ def dump_stats(cur, oid_str, f_out, inclHLL):
             linecomment = '-- ' # This will comment out the DELETE query
 
         print(rowVals)
-        f_out.writelines(pstring.format(Escape(vals[0]), Escape(vals[2]), linecomment, starelid, vals[6], ',\n'.join(rowVals)))
+        f_out.writelines(pstring.format(escape_string(vals[0]), escape_string(vals[2]), linecomment, starelid, vals[6], ',\n'.join(rowVals)))
 
 def dump_extstats(cur, oid_str, f_out):
     # dunp pg_statistics_ext data on a per table basis
@@ -389,7 +389,7 @@ def main():
 
     # first create schema DDLs
     print("Writing schema DDLs ...")
-    table_schemas = ["CREATE SCHEMA %s;\n" % Escape(schema) for schema in mr_query.schemas if schema != 'public']
+    table_schemas = ["CREATE SCHEMA %s;\n" % escape_string(schema) for schema in mr_query.schemas if schema != 'public']
     f_out.writelines(table_schemas)
 
     # write relation and function DDLs
