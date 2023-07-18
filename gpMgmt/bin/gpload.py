@@ -41,7 +41,6 @@ import hashlib
 import datetime,getpass,os,signal,socket,threading,time,traceback,re
 import subprocess
 import uuid
-from gppylib.utils import escape_string
 
 try:
     from gppylib.gpversion import GpVersion
@@ -549,6 +548,8 @@ def is_keyword(tab):
     else:
         return False
 
+def escape_string(string):
+    return psycopg2.extensions.QuotedString(string).getquoted()[1:-1].decode()
 
 def caseInsensitiveDictLookup(key, dictionary):
     """
