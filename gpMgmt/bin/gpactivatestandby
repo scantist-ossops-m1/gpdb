@@ -340,7 +340,7 @@ def promote_standby(coordinator_data_dir):
             dbconn.execSQL(conn, 'CHECKPOINT')
             conn.close()
             return True
-        except psycopg2.InternalError as e:
+        except (psycopg2.InternalError, psycopg2.OperationalError) as e:
             pass
         time.sleep(1)
 
