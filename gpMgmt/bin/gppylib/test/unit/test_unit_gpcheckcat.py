@@ -18,11 +18,11 @@ class GpCheckCatTestCase(GpTestCase):
         self.subject = imp.load_source('gpcheckcat', gpcheckcat_file)
         self.subject.check_gpexpand = lambda : (True, "")
 
-        self.conn = Mock(spec=['close', 'cursor', 'set_session'])
+        self.db_connection = Mock(spec=['close', 'cursor', 'set_session'])
         self.unique_index_violation_check = Mock(spec=['runCheck'])
         self.foreign_key_check = Mock(spec=['runCheck', 'checkTableForeignKey'])
         self.apply_patches([
-            patch("gpcheckcat.connect", return_value=self.conn),
+            patch("gpcheckcat.connect", return_value=self.db_connection),
             patch("gpcheckcat.UniqueIndexViolationCheck", return_value=self.unique_index_violation_check),
             patch("gpcheckcat.ForeignKeyCheck", return_value=self.foreign_key_check),
             patch('os.environ', new={}),
@@ -58,7 +58,7 @@ class GpCheckCatTestCase(GpTestCase):
     # def test_run_all_checks__runs_all_checks_in_correct_order(self):
     #     self.subject.runAllChecks()
     #
-    #     self.unique_index_violation_check.runCheck.assert_any_call(self.conn)
+    #     self.unique_index_violation_check.runCheck.assert_any_call(self.db_connection)
     #     # add other checks here
     #     # figure out how to enforce the order of calls;
     #     # at a minimum, check the order number of the static list gpcheckcat.all_checks
@@ -66,7 +66,7 @@ class GpCheckCatTestCase(GpTestCase):
     def test_running_unique_index_violation_check__makes_the_check(self):
         self.subject.runOneCheck('unique_index_violation')
 
-        self.unique_index_violation_check.runCheck.assert_called_with(self.conn)
+        self.unique_index_violation_check.runCheck.assert_called_with(self.db_connection)
 
     def test_running_unique_index_violation_check__when_no_violations_are_found__passes_the_check(self):
         self.subject.runOneCheck('unique_index_violation')
@@ -101,21 +101,21 @@ class GpCheckCatTestCase(GpTestCase):
         self.assertIn(expected_message2, log_messages)
 
     def test_drop_leaked_schemas__when_no_leaked_schemas_exist__passes_gpcheckcat(self):
-        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.conn)
+        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.db_connection)
 
         self.subject.setError.assert_not_called()
 
     def test_drop_leaked_schemas____when_leaked_schemas_exist__finds_and_drops_leaked_schemas(self):
         self.leaked_schema_dropper.drop_leaked_schemas.return_value = ['schema1', 'schema2']
 
-        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.conn)
+        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.db_connection)
 
-        self.leaked_schema_dropper.drop_leaked_schemas.assert_called_once_with(self.conn)
+        self.leaked_schema_dropper.drop_leaked_schemas.assert_called_once_with(self.db_connection)
 
     def test_drop_leaked_schemas__when_leaked_schemas_exist__passes_gpcheckcat(self):
         self.leaked_schema_dropper.drop_leaked_schemas.return_value = ['schema1', 'schema2']
 
-        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.conn)
+        self.subject.drop_leaked_schemas(self.leaked_schema_dropper, self.db_connection)
 
         self.subject.setError.assert_not_called()
 
@@ -129,7 +129,7 @@ class GpCheckCatTestCase(GpTestCase):
         self.assertIn(expected_message, log_messages)
 
     def test_automatic_thread_count(self):
-        self.conn.cursor.return_value.fetchall.return_value = [[0]]
+        self.db_connection.cursor.return_value.fetchall.return_value = [[0]]
 
         self._run_batch_size_experiment(100)
         self._run_batch_size_experiment(101)
@@ -145,10 +145,10 @@ class GpCheckCatTestCase(GpTestCase):
 
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
-        self.conn.cursor.return_value = Mock()
-        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
-        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
-        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+        self.db_connection.cursor.return_value = Mock()
+        self.db_connection.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.db_connection.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.db_connection.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
 
         testargs = ['some_string','-port 1', '-R foo']
 
@@ -193,7 +193,7 @@ class GpCheckCatTestCase(GpTestCase):
         self.assertTrue(self.subject.GV.foreignKeyStatus)
         self.subject.setError.assert_any_call(self.subject.ERROR_REMOVE)
         self.foreign_key_check.runCheck.assert_called_once_with(cat_tables)
-        fast_seq_mock.assert_called_once_with(self.conn)
+        fast_seq_mock.assert_called_once_with(self.db_connection)
 
     @patch('gpcheckcat.processForeignKeyResult')
     def test_checkForeignKey__with_arg(self, process_foreign_key_mock):
@@ -240,10 +240,10 @@ class GpCheckCatTestCase(GpTestCase):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
 
         # context manager helper functions.
-        self.conn.cursor.return_value = Mock()
-        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
-        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
-        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+        self.db_connection.cursor.return_value = Mock()
+        self.db_connection.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.db_connection.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.db_connection.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
 
         self.subject.GV.opt['-C'] = 'pg_class'
 
@@ -324,10 +324,10 @@ class GpCheckCatTestCase(GpTestCase):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
 
         # context manager helper functions.
-        self.conn.cursor.return_value = Mock()
-        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
-        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
-        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+        self.db_connection.cursor.return_value = Mock()
+        self.db_connection.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.db_connection.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.db_connection.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
 
         self.subject.all_checks = {'test1': 'a', 'test2': 'b', 'test3': 'c'}
 
@@ -346,10 +346,10 @@ class GpCheckCatTestCase(GpTestCase):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
 
         # context manager helper functions.
-        self.conn.cursor.return_value = Mock()
-        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
-        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
-        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+        self.db_connection.cursor.return_value = Mock()
+        self.db_connection.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.db_connection.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.db_connection.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
 
         self.subject.all_checks = {'test1': 'a', 'test2': 'b', 'test3': 'c'}
 
@@ -367,10 +367,10 @@ class GpCheckCatTestCase(GpTestCase):
         for i in range(1, 50):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
         # context manager helper functions.
-        self.conn.cursor.return_value = Mock()
-        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
-        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
-        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+        self.db_connection.cursor.return_value = Mock()
+        self.db_connection.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.db_connection.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.db_connection.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
         self.subject.all_checks = {'test1': 'a', 'test2': 'b', 'test3': 'c'}
 
         testargs = ['gpcheckcat', '-port 1', '-s', "test_invalid, test2"]
@@ -391,10 +391,10 @@ class GpCheckCatTestCase(GpTestCase):
             primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
 
         # context manager helper functions.
-        self.conn.cursor.return_value = Mock()
-        self.conn.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
-        self.conn.cursor.return_value.__exit__ = Mock(return_value=False)
-        self.conn.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
+        self.db_connection.cursor.return_value = Mock()
+        self.db_connection.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
+        self.db_connection.cursor.return_value.__exit__ = Mock(return_value=False)
+        self.db_connection.cursor.return_value.__enter__.return_value.fetchall.return_value = primaries
 
         self.subject.all_checks = {'test1': 'a', 'test2': 'b', 'test3': 'c'}
 

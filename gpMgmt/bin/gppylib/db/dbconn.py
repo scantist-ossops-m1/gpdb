@@ -187,7 +187,7 @@ class Connection:
 
 
 def connect(dburl, utility=False, verbose=False,
-            encoding=None, allowSystemTableMods=False, logConn=True, unsetSearchPath=True):
+            encoding=None, allowSystemTableMods=False, logConn=True, unsetSearchPath=True, cursorFactory=None):
 
     conninfo = {
         'user': dburl.pguser,
@@ -195,6 +195,7 @@ def connect(dburl, utility=False, verbose=False,
         'host': dburl.pghost,
         'port': dburl.pgport,
         'database': dburl.pgdb,
+        'cursor_factory': cursorFactory
     }
 
     # building options
@@ -265,7 +266,7 @@ def execSQL(conn, sql, autocommit=True):
     with conn.cursor() as cursor:
         cursor.execute(sql)
 
-def query(conn, sql):
+def query(conn, sql, cursor_factory=None):
     """
     Run SQL that is expected to return some rows of output
 

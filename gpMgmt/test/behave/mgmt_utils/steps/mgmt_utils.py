@@ -19,7 +19,8 @@ from behave import given, when, then
 from datetime import datetime, timedelta
 from os import path
 from contextlib import closing
-
+import psycopg2
+from psycopg2 import extras
 from gppylib.gparray import GpArray, ROLE_PRIMARY, ROLE_MIRROR
 from gppylib.commands.gp import SegmentStart, GpStandbyStart, CoordinatorStop
 from gppylib.commands import gp, unix
@@ -3744,9 +3745,9 @@ def impl(context):
 
 @then('the database locales are saved')
 def impl(context):
-    with closing(dbconn.connect(dbconn.DbURL())) as conn:
+    with closing(dbconn.connect(dbconn.DbURL(), cursorFactory=psycopg2.extras.NamedTupleCursor)) as conn:
         rows = dbconn.query(conn, "SELECT name, setting FROM pg_settings WHERE name LIKE 'lc_%'").fetchall()
-        context.database_locales = {row[0]: row[1] for row in rows}
+        context.database_locales = {row.name: row.setting for row in rows}
 
 def check_locales(database_locales, locale_names, expected):
     locale_names = locale_names.split(',')
