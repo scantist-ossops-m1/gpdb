@@ -12,6 +12,7 @@ import re
 from contextlib import closing
 from optparse import OptionParser
 from gppylib.utils import formatInsertValuesList
+from gppylib.utils import escape_string
 import psycopg2
 
 gpsd_version = '%prog 1.0'
@@ -107,7 +108,7 @@ def dumpStats(cur, inclHLL):
     cur.execute(query)
 
     for vals in ResultIter(cur):
-        starelid = "'%s.%s'::regclass" % (vals[1], vals[0])
+        starelid = "'%s.%s'::regclass" % (escape_string(vals[1]), escape_string(vals[0]))
         rowVals = formatInsertValuesList(vals, starelid, inclHLL)
         print(pstring.format(vals[0], vals[2], ',\n'.join(rowVals)))
 

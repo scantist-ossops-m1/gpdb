@@ -502,7 +502,6 @@ def checkDistribPolicy():
                 logger.error(qry)
                 for e in err:
                     logger.error(formatErr(e[0], e[1], e[2]))
-                for e in err:
                     cons = e[2]
                     removeIndexConstraint(cons['nspname'], cons['relname'],
                                           cons['constraint'])
@@ -542,8 +541,8 @@ def checkDistribPolicy():
                 logger.info('[FAIL] unique constraints')
                 logger.error('pg_constraint has %d issue(s)' % len(err))
                 logger.error(qry)
-            for e in err: logger.error(formatErr(e[0], e[1], e[2]))
             for e in err:
+                logger.error(formatErr(e[0], e[1], e[2]))
                 cons = e[2]
                 removeIndexConstraint(cons['nspname'], cons['relname'],
                                       cons['constraint'])
@@ -1723,10 +1722,9 @@ def checkTableInconsistentEntry(cat):
 
             fields = [desc[0] for desc in curs.description]
             gplog.log_literal(logger, logging.ERROR, "    " + " | ".join(fields))
-            rows = curs.fetchall()
-            for row in rows:
+            results = curs.fetchall()
+            for row in results:
                 gplog.log_literal(logger, logging.ERROR, "    " + " | ".join(map(str, row)))
-            results = rows
             processInconsistentEntryResult(catname, pkey, fields, results)
             if catname == 'pg_type':
                 generateVerifyFile(catname, fields, results, 'duplicate')
@@ -3129,21 +3127,21 @@ class GPObject:
                         if 'relid' in key or key in ['ev_class', 'reloid']:
                             curs = conn.cursor()
                             curs.execute(oid_query % issue.pkeys[key])
-                            table_list = curs.fetchall()
+                            table_list = curs.fetchone()
                             if table_list:
                                 if issue.type == 'missing':
-                                    GV.missing_attr_tables.append( (table_list[0][0], issue.segids) )
+                                    GV.missing_attr_tables.append( (table_list[0], issue.segids) )
                                 else:
-                                    GV.extra_attr_tables.append( (table_list[0][0], issue.segids) )
+                                    GV.extra_attr_tables.append( (table_list[0], issue.segids) )
                         elif key == 'oid':
                             curs = conn.cursor()
                             curs.execute(type_query % issue.pkeys[key])
-                            table_list = curs.fetchall()
+                            table_list = curs.fetchone()
                             if table_list:
                                 if issue.type == 'missing':
-                                    GV.missing_attr_tables.append( (table_list[0][0], issue.segids) )
+                                    GV.missing_attr_tables.append( (table_list[0], issue.segids) )
                                 else:
-                                    GV.extra_attr_tables.append( (table_list[0][0], issue.segids) )
+                                    GV.extra_attr_tables.append( (table_list[0], issue.segids) )
 
 
     def __cmp__(self, other):

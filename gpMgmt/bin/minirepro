@@ -245,7 +245,7 @@ def dump_stats(cur, oid_str, f_out, inclHLL):
 
     for vals in result_iter(cur):
         schemaname = vals[1]
-        starelid = "'%s.%s'::regclass" % (vals[1], vals[0])
+        starelid = "'%s.%s'::regclass" % (escape_string(vals[1]), escape_string(vals[0]))
         rowVals = formatInsertValuesList(vals, starelid, inclHLL)
 
         # For non-catalog tables we don't need to delete stats first
@@ -254,7 +254,6 @@ def dump_stats(cur, oid_str, f_out, inclHLL):
         if schemaname != 'pg_catalog':
             linecomment = '-- ' # This will comment out the DELETE query
 
-        print(rowVals)
         f_out.writelines(pstring.format(escape_string(vals[0]), escape_string(vals[2]), linecomment, starelid, vals[6], ',\n'.join(rowVals)))
 
 def dump_extstats(cur, oid_str, f_out):

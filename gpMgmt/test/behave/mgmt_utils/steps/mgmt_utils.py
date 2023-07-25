@@ -3069,7 +3069,7 @@ def impl(context, table_name):
 
     query = """SELECT txid_current()"""
     cursor.execute(query)
-    xid = cursor.fetchone()
+    xid = cursor.fetchone()[0]
     context.long_run_select_only_xid = xid
 
 @then('verify that long-run read-only transaction still exists on {table_name}')
@@ -3083,7 +3083,7 @@ def impl(context, table_name):
 
     query = """SELECT txid_current()"""
     cursor.execute(query)
-    xid = cursor.fetchone()
+    xid = cursor.fetchone()[0]
 
     if (xid != context.long_run_select_only_xid or
         data_result != context.long_run_select_only_data_result):
@@ -3104,7 +3104,7 @@ def impl(context):
 
     query = """SELECT txid_current()"""
     cursor.execute(query)
-    xid = cursor.fetchone()
+    xid = cursor.fetchone()[0]
     context.long_run_xid = xid
 
 @then('verify that long-run transaction aborted for changing the catalog by creating table {table_name}')
@@ -3113,7 +3113,7 @@ def impl(context, table_name):
 
     query = """SELECT txid_current()"""
     cursor.execute(query)
-    xid = cursor.fetchone()
+    xid = cursor.fetchone()[0]
     if context.long_run_xid != xid:
         raise Exception("Incorrect xid of long run transaction: before %s, after %s" %
                         (context.long_run_xid, xid));

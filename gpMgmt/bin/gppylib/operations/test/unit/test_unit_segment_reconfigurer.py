@@ -45,7 +45,7 @@ class SegmentReconfiguerTestCase(GpTestCase):
                 worker_pool=self.worker_pool, timeout=self.timeout)
         reconfigurer.reconfigure()
         psycopg2.connect.assert_has_calls([
-            call(dbname=self.db, host=self.host, port=self.port, options=None, user=self.user, passord=self.passwd),
+            call(dbname=self.db, host=self.host, port=self.port, options=None, user=self.user, password=self.passwd),
             call().query(FTS_PROBE_QUERY),
             call().close(),
             ]

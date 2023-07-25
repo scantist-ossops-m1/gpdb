@@ -15,7 +15,7 @@ class UniqueIndexViolationCheckTestCase(GpTestCase):
         ]
 
         self.db_connection = Mock(spec=['cursor'])
-        self.db_connection.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute'])) ##side_effect = self.mock_query_return_value
+        self.db_connection.cursor.return_value.__enter__ = Mock(return_value=Mock(spec=['fetchall', 'execute']))
         self.db_connection.cursor.return_value.__exit__ = Mock(return_value=False)
 
     def test_run_check__when_there_are_no_issues(self):
