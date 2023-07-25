@@ -3124,7 +3124,7 @@ def impl(context, table_name):
     except Exception as e:
         key_msg = "cluster is expanded from"
         if key_msg not in str(e):
-            raise Exception("transaction not abort correctly, errmsg:%s" % e)
+            raise Exception("transaction not abort correctly, errmsg:%s" % str(e))
     else:
         raise Exception("transaction not abort")
 
