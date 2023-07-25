@@ -266,7 +266,7 @@ def execSQL(conn, sql, autocommit=True):
     with conn.cursor() as cursor:
         cursor.execute(sql)
 
-def query(conn, sql, cursor_factory=None):
+def query(conn, sql):
     """
     Run SQL that is expected to return some rows of output
 
