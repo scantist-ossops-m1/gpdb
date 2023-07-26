@@ -81,7 +81,7 @@ InferredPredicatesConstraintSimplification NoPushdownPredicateWithCTEAnchor
 InferPredicatesForPartSQ InferPredicatesForQuantifiedSQ InferPredicatesForProcessedColumn DoubleNDVCardinalityEquals
 NotWellDefinedDisjunctConjunctPredicates InferPredicatesIntFromSubquery InferPredicatesFromExistsSubquery
 InferPredicatesIntFromExistsSubquery InferPredicatesFromMultiSubquery InferPredicatesMultiColumns
-InferPredicatesJoinSubquery;
+InferPredicatesJoinSubquery JoinPredFalseFilter;
 
 CLikeIDFTest:
 LIKE-Pattern-green LIKE-Pattern-green-2 LIKE-Pattern-Empty Nested-Or-Predicates Join-IDF
@@ -105,7 +105,8 @@ CIndexScanTest:
 BTreeIndex-Against-InList BTreeIndex-Against-InListLarge BTreeIndex-Against-ScalarSubquery
 IndexScan-AOTable IndexScan-DroppedColumns IndexScan-BoolTrue IndexScan-BoolFalse
 IndexScan-Relabel IndexGet-OuterRefs LogicalIndexGetDroppedCols
-IndexScan-ORPredsNonPart IndexScan-ORPredsAOPart IndexScan-AndedIn SubqInIndexPred Hash-IndexScan;
+IndexScan-ORPredsNonPart IndexScan-ORPredsAOPart IndexScan-AndedIn SubqInIndexPred Hash-IndexScan
+IndexScan-OrderBy-on-Single-IndexCol IndexScan-OrderBy-on-Multiple-IndexCols IndexScan-OrderBy-on-NonIndexCol;
 
 CBitmapScanTest:
 IndexedNLJBitmap BitmapIndex-ChooseHashJoin BitmapTableScan-AO-Btree-PickOnlyHighNDV
@@ -250,15 +251,15 @@ PartTbl-SPE-Boolean1 PartTbl-SPE-Boolean2;
 
 CSetop1Test:
 ValueScanWithDuplicateAndSelfComparison PushGbBelowNaryUnionAll
-PushGbBelowNaryUnion-1 PushGbBelowNaryUnion-2 MS-UnionAll-1
-MS-UnionAll-5 MS-UnionAll-6 MS-UnionAll-7 ManyTextUnionsInSubquery JoinBelowUnionAll;
+PushGbBelowNaryUnion-1 PushGbBelowNaryUnion-2
+ManyTextUnionsInSubquery JoinBelowUnionAll;
 
 CSetop2Test:
 Cascaded-UnionAll-Same-Cols-Order Cascaded-UnionAll-Differing-Cols
 Cascaded-UnionAll-Differing-Cols-Order Union-Over-UnionAll Nested-Setops
 Nested-Setops-2 Except InnerJoinOverJoinExcept InnerJoinOverJoinExceptAll IsNullUnionAllIsNotNull UnionAllWithTruncatedOutput
 Union-OuterRefs-Output Union-OuterRefs-Casting-Output
-Union-OuterRefs-InnerChild MS-UnionAll-2;
+Union-OuterRefs-InnerChild;
 
 CSetop3Test:
 UnionWithOuterRefs UnionAll
@@ -269,7 +270,7 @@ ExceptHashIncompatibleRange;
 
 CSetop4Test:
 PushSelectDownUnionAllOfCTG Push-Subplan-Below-Union Intersect-OuterRefs
-PushSelectWithOuterRefBelowUnion PushGbBelowUnion UnionGbSubquery MS-UnionAll-4
+PushSelectWithOuterRefBelowUnion PushGbBelowUnion UnionGbSubquery
 AnyPredicate-Over-UnionOfConsts EquivClassesUnion EquivClassesIntersect
 IndexScanWithNestedCTEAndSetOp Blocking-Spool-Parallel-Union-All;
 

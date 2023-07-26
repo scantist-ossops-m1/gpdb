@@ -898,7 +898,6 @@ def impl(context, command, num):
 def impl(context, command, ret_code):
     check_return_code(context, ret_code)
 
-
 @given('the segments are synchronized')
 @when('the segments are synchronized')
 @then('the segments are synchronized')
@@ -1561,6 +1560,7 @@ def impl(context, content_ids, expected_status):
 
 @given('the cluster configuration has no segments where "{filter}"')
 @when('the cluster configuration has no segments where "{filter}"')
+@then('the cluster configuration has no segments where "{filter}"')
 def impl(context, filter):
     SLEEP_PERIOD = 5
     MAX_DURATION = 300
@@ -3942,7 +3942,7 @@ def impl(context, slot):
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
     segments = gparray.getDbList()
     dbname = "template1"
-    query = "SELECT count(*) FROM pg_catalog.pg_replication_slots WHERE slot_name = '{}'".format(slot)
+    query = "SELECT count(*) FROM pg_catalog.pg_replication_slots WHERE slot_name = '{}' and active = 't'".format(slot)
 
     for seg in segments:
         if seg.isSegmentPrimary(current_role=True):
@@ -3952,7 +3952,7 @@ def impl(context, slot):
                                         utility=True, unsetSearchPath=False)) as conn:
                 result = dbconn.querySingleton(conn, query)
                 if result == 0:
-                    raise Exception("Slot does not exist for host:{}, port:{}".format(host, port))
+                    raise Exception("Slot either does not exist or is inactive for host:{}, port:{}".format(host, port))
 
 
 @given('user waits until gp_stat_replication table has no pg_basebackup entries for content {contentids}')

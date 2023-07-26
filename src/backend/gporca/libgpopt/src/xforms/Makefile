@@ -55,7 +55,6 @@ OBJS        = CDecorrelator.o \
               CXformImplementDynamicBitmapTableGet.o \
               CXformImplementFullOuterMergeJoin.o \
               CXformImplementLimit.o \
-              CXformImplementPartitionSelector.o \
               CXformImplementSequence.o \
               CXformImplementSequenceProject.o \
               CXformImplementSplit.o \
@@ -102,6 +101,7 @@ OBJS        = CDecorrelator.o \
               CXformLeftSemiJoin2InnerJoin.o \
               CXformLeftSemiJoin2InnerJoinUnderGb.o \
               CXformLeftSemiJoin2NLJoin.o \
+              CXformLimit2IndexGet.o \
               CXformMaxOneRow2Assert.o \
               CXformDynamicForeignGet2DynamicForeignScan.o \
               CXformProject2Apply.o \
