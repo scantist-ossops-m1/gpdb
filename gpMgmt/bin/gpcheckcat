@@ -876,18 +876,18 @@ def drop_leaked_schemas(leaked_schema_dropper, dbname):
     logger.info('-----------------------------------')
     logger.info('Checking for leaked temporary schemas')
 
-    with closing(connect(databsae=dbname)) as conn:
-        try:
-            dropped_schemas = leaked_schema_dropper.drop_leaked_schemas(conn)
-            if not dropped_schemas:
-                logger.info('[OK] temporary schemas')
-            else:
-                logger.info('[FAIL] temporary schemas')
-                myprint("Found and dropped %d unbound temporary schemas" % len(dropped_schemas))
-                logger.error('Dropped leaked schemas \'%s\' in the database \'%s\'' % (dropped_schemas, dbname))
-        except Exception as e:
-            setError(ERROR_NOREPAIR)
-            myprint('  Execution error: ' + str(e))
+    try:
+        with closing(connect(database=dbname)) as conn:
+                dropped_schemas = leaked_schema_dropper.drop_leaked_schemas(conn)
+                if not dropped_schemas:
+                    logger.info('[OK] temporary schemas')
+                else:
+                    logger.info('[FAIL] temporary schemas')
+                    myprint("Found and dropped %d unbound temporary schemas" % len(dropped_schemas))
+                    logger.error('Dropped leaked schemas \'%s\' in the database \'%s\'' % (dropped_schemas, dbname))
+    except Exception as e:
+        setError(ERROR_NOREPAIR)
+        myprint('  Execution error: ' + str(e))
 
 def checkDepend():
     # Check for dependencies on non-existent objects
