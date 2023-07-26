@@ -2171,7 +2171,7 @@ class ExpandCommand(SQLCommand):
 
         try:
             status_conn = dbconn.connect(self.status_url, encoding='UTF8')
-            table_conn = dbconn.connect(self.table_url, encoding='UTF8')
+            table_conn = dbconn.connect(self.table_url, encoding='UTF8', cursorFactory=psycopg2.extras.NamedTupleCursor)
         except psycopg2.DatabaseError as ex:
             if self.options.verbose:
                 logger.exception(ex)
