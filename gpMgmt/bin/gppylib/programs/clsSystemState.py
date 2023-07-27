@@ -1028,7 +1028,7 @@ class GpSystemStateProgram:
                         wal_sync_bytes_out = 'Unknown'
                         unsync_segs.append(s)
                         data.addValue(VALUE__REPL_SYNC_REMAINING_BYTES, wal_sync_bytes_out)
-            except psycopg2.InternalError:
+            except (psycopg2.InternalError, psycopg2.OperationalError):
                 logger.warning('could not query segment {} ({}:{})'.format(
                     s.dbid, s.hostname, s.port
                 ))
@@ -1100,7 +1100,7 @@ class GpSystemStateProgram:
 
                     cursor.close()
 
-        except psycopg2.InternalError:
+        except (psycopg2.InternalError, psycopg2.OperationalError):
             logger.warning('could not query segment {} ({}:{})'.format(
                     primary.dbid, primary.hostname, primary.port
             ))

@@ -341,7 +341,7 @@ def connect(user=None, password=None, host=None, port=None,
                                 password=password, dbname=database, options=options)
         ## Don't execute query in a transaction block.
         conn.set_session(autocommit=True)
-    except psycopg2.InternalError as ex:
+    except (psycopg2.InternalError, psycopg2.OperationalError) as ex:
         logger.fatal('could not connect to %s: "%s"' %
                      (database, str(ex).strip()))
         exit(1)
