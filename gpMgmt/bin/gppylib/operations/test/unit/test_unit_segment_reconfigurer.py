@@ -86,3 +86,27 @@ class SegmentReconfiguerTestCase(GpTestCase):
 
         self.connect.assert_has_calls([call(self.db_url), call(self.db_url), ])
         self.conn.close.assert_has_calls([])
+
+    @patch('time.time')
+    def test_it_gives_up_after_600_seconds_2(self, now_mock):
+        start_datetime = datetime.datetime(2023, 7, 27, 16, 0, 0)
+        start_time = time.mktime(start_datetime.timetuple())
+        now_mock.configure_mock(return_value=start_time)
+
+        def fail_for_ten_minutes():
+            new_time = start_time
+            # leap forward 600 seconds
+            new_time += self.timeout
+            now_mock.configure_mock(return_value=new_time)
+            yield psycopg2.DatabaseError
+
+        self.connect.configure_mock(side_effect=fail_for_ten_minutes())
+
+        reconfigurer = SegmentReconfigurer(logger=self.logger,
+                worker_pool=self.worker_pool, timeout=self.timeout)
+        with self.assertRaises(RuntimeError) as context:
+            reconfigurer.reconfigure()
+            self.assertEqual("FTS probing did not complete in {} seconds.".format(self.timeout), context.exception.message)
+
+        self.connect.assert_has_calls([call(self.db_url)])
+        self.conn.close.assert_has_calls([])
